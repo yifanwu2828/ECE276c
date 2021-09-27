@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import gym
-import pybullet_envs
+import pybulletgym
 
 from icecream import ic
 
@@ -53,7 +53,7 @@ def get_reference_trajectory(theta):
 
 
 if __name__ == "__main__":
-    env = gym.make("ReacherBulletEnv-v0")
+    env = gym.make("ReacherPyBulletEnv-v0")
     # env.render(mode="human")
     env.reset()
 
