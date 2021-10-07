@@ -60,7 +60,7 @@ class PDReacher(gym.ObservationWrapper):
         y = self.l0 * np.sin(q0) + self.l1 * np.sin(q0 + q1)
         return x, y
 
-    def getInverseKinematics(self, x, y) -> Tuple[float, float]:
+    def getInverseKinematics(self, x: float, y: float) -> Tuple[float, float]:
         """
         Returns the inverse kinematics of the robot.
         :param x: x position of the end-effector
@@ -75,7 +75,7 @@ class PDReacher(gym.ObservationWrapper):
         )
         return q0, q1
 
-    def getJacobian(self, q0, q1) -> np.array:
+    def getJacobian(self, q0: float, q1: float) -> np.ndarray:
         """
         Returns the Jacobian matrix of the forward model.
         :param q0: angle of joint 0 in radians.
@@ -152,11 +152,14 @@ def plot_trajectory(true_traj, ref_traj, title):
     plt.plot(true_traj[:, 0], true_traj[:, 1], label="trajectory")
     plt.title(title)
     plt.xlim(-0.3, 0.3)
+    plt.xlabel("x")
+    plt.ylabel("y")
     plt.legend()
+    plt.tight_layout()
     plt.show()
 
 
-def plot_error(error):
+def plot_error(error: np.ndarray, title: str):
     plt.figure()
     plt.gcf().canvas.mpl_connect(
         "key_release_event",
@@ -164,6 +167,10 @@ def plot_error(error):
     )
     plt.plot(np.zeros_like(error), "--")
     plt.plot(error[:, 0] + error[:, 1])
+    plt.title(title)
+    plt.xlabel("Time")
+    plt.ylabel("Error")
+    plt.tight_layout()
     plt.show()
 
 
@@ -186,7 +193,7 @@ def tracking_by_end_effector(args):
     env.reset()
     # Not Random start position
     if not args.random_start:
-        print("Start on track")
+        print("Start on the same position")
         q0, q1 = env.getInverseKinematics(REF[0, 0], REF[0, 1])
         env.setJointPosition(q0, q1)
 
@@ -219,7 +226,7 @@ def tracking_by_end_effector(args):
     MSE = np.mean((REF - traj) ** 2)
     ic(MSE)
 
-    plot_error(e)
+    plot_error(e, title="End Effector Position PD Control Error")
     plot_trajectory(
         true_traj=traj, ref_traj=REF, title="End Effector Position PD Control"
     )
@@ -275,7 +282,7 @@ def tracking_by_joint(args):
     MSE = np.mean((REF - traj) ** 2)
     ic(MSE)
 
-    plot_error(e)
+    plot_error(e, title="Joint Position PD Control Error")
     plot_trajectory(true_traj=traj, ref_traj=REF, title="Joint PD Control")
 
 

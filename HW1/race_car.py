@@ -30,7 +30,7 @@ def plot_trajectory(true_traj, ref_traj, title):
     :param title: title of the plot
     """
     plt.scatter(
-        ref_traj[0, 0], ref_traj[0, 1], marker="^", c="b", label="reference_start&end"
+        ref_traj[0, 0], ref_traj[1, 0], marker="^", c="b", label="reference_start&end"
     )
     plt.plot(
         ref_traj[0, :],
@@ -45,13 +45,16 @@ def plot_trajectory(true_traj, ref_traj, title):
     plt.legend()
     plt.show(block=True)
 
-def plot_error(error):
+def plot_error(error, title):
     plt.gcf().canvas.mpl_connect(
         "key_release_event",
         lambda event: [plt.close() if event.key in ["escape", "Q"] else None],
     )
     plt.plot(np.zeros_like(error), "--")
     plt.plot(error[:, 0] + error[:, 1])
+    plt.title(title)
+    plt.xlabel("Time")
+    plt.ylabel("Error")
     plt.show(block=True)
 
 
@@ -64,6 +67,7 @@ if __name__ == "__main__":
         choices=["FigureEight", "Linear", "Circle"],
         default="FigureEight",
     )
+    p.add_argument("--render", '-r', action="store_true")
     args = p.parse_args()
 
     env = SDRaceCar(render_env=True, track=args.track)
@@ -79,8 +83,6 @@ if __name__ == "__main__":
         t = np.linspace(-1 / 2 * np.pi, 3 / 2 * np.pi, track_len)
         track = 20 * np.vstack(
                 [np.cos(t), np.multiply(np.sin(t), np.cos(t))])
-        track_boundaries = [-40, 40, -20, 20]
-        maxStep = 500
         Kp = 0.1
         Kd = 0.35
         
@@ -89,25 +91,21 @@ if __name__ == "__main__":
                 10 * np.linspace(0, 100, track_len),
                 0 * np.ones(track_len)
             ])
-        track_boundaries = [-5, 35, -20, 20]
-        maxStep = 50
-        Kp = -100000
-        Kd = 10
+        Kp = 0.0001
+        Kd = 0.001
     else:  # default to circle track
         t = np.linspace(-1 / 2 * np.pi, 3 / 2 * np.pi, track_len)
         track = 10 * np.vstack([np.cos(t), np.sin(t) + 1])
-        track_boundaries = [-30, 30, -20, 40]
         maxStep = 350
         Kp = 0.1
         Kd = 0.285
-
-
     
     
     done = False
     traj = []
     ref_traj = []
     
+    step = 0
     while not done:
         x, y, theta, v_x, v_y, theta_dot, h = env.get_observation()
 
@@ -120,32 +118,33 @@ if __name__ == "__main__":
 
         R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
         
-        a = R @ np.array([dx, dy])
+        err = R @ np.array([dx, dy])
         
-        # if v >5:
-            # thrust = -1
-        # else:
-        thrust = Kp * (a[1]**2 - a[0]**2) + Kd * (0 -v)
-        ic(thrust)
         
+        thrust = Kp * (err[1]**2 + err[0]**2) + Kd * (0 - v)
         thrust = np.clip(thrust, -1, 1)
+        
         act = [steering_angle, thrust]
         nxt_obs, rew, done, _ = env.step(act)
         
         traj.append([x, y])
         ref_traj.append(h)
-        # env.render()
-    
+        if args.render:
+            env.render()
+        step += 1
+            
+    if args.render:
+        plt.close()        
+
     traj = np.asarray(traj)
     ref_traj = np.asarray(ref_traj)
-    ic(traj.shape, ref_traj.shape)
     
     MSE = np.mean((ref_traj - traj) ** 2)
     ic(MSE)
 
+    ic(step)
     
     e = ref_traj - traj
-    
-    plot_error(e)
+    plot_error(e, title=f"{args.track} Error")
     plot_trajectory(traj, track, title=f"{args.track}")
     
