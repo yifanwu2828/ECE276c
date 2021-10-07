@@ -91,8 +91,8 @@ if __name__ == "__main__":
                 10 * np.linspace(0, 100, track_len),
                 0 * np.ones(track_len)
             ])
-        Kp = 0.0001
-        Kd = 0.001
+        Kp = 10
+        Kd = 0.1
     else:  # default to circle track
         t = np.linspace(-1 / 2 * np.pi, 3 / 2 * np.pi, track_len)
         track = 10 * np.vstack([np.cos(t), np.sin(t) + 1])
@@ -116,11 +116,7 @@ if __name__ == "__main__":
 
         steering_angle = wrap_angle(np.arctan2(dy, dx) - theta)
 
-        R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-        
-        err = R @ np.array([dx, dy])
-        
-        
+        err = np.array([dx, dy])
         thrust = Kp * (err[1]**2 + err[0]**2) + Kd * (0 - v)
         thrust = np.clip(thrust, -1, 1)
         
