@@ -218,7 +218,7 @@ class MDP:
         return policy
 
     def PolicyIteration(
-        self, max_iter: int = 50, gamma: float = 0.99, theta: float = 1e-8
+        self, max_iter: int = 50, gamma: float = 0.99, theta: float = 1e-8, exhaustive: bool = False
     ) -> Tuple[np.ndarray, np.ndarray, float, float]:
         """
         Policy iteration
@@ -254,7 +254,7 @@ class MDP:
             success_rates.append(success_rate)
             mean_rewards.append(mean_rew)
 
-            if np.all(PI_old == PI):
+            if np.all(PI_old == PI) and not exhaustive:
                 print(f"\nPolicy is stable in {i} iterations")
                 break
 
