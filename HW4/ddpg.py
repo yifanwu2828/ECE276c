@@ -145,6 +145,7 @@ class DDPG:
         ).to(self.device)
 
         # Set target param equal to main param should be same as deep copy.
+        # TODO: should include actor_target as well.
         self.critic_target = deepcopy(self.critic).to(self.device)
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=pi_lr)
