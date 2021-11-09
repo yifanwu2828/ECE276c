@@ -8,6 +8,7 @@ import numpy as np
 from numpy.core.fromnumeric import mean
 import torch as th
 from torch import nn
+import torch.nn.functional as F
 from torch.optim import Adam
 from torch.nn.utils import clip_grad_norm_
 
@@ -86,6 +87,10 @@ def one_gradient_step(
 
 
 class DDPG:
+    """
+    Deep Deterministic Policy Gradient(https://arxiv.org/abs/1509.02971)
+    """
+    
     def __init__(
         self,
         env,
@@ -99,7 +104,8 @@ class DDPG:
         save_dir,
         hidden_sizes=(64, 64),
         activation="relu",
-    ):  
+    ): 
+         
         self.save_dir = save_dir
         self.device = device
         self.seed = seed
@@ -146,6 +152,7 @@ class DDPG:
 
         # Set target param equal to main param should be same as deep copy.
         # TODO: should include actor_target as well.
+        self.actor_target = deepcopy(self.actor).to(self.device)
         self.critic_target = deepcopy(self.critic).to(self.device)
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=pi_lr)
@@ -250,11 +257,12 @@ class DDPG:
         q = self.critic(obs, act)
 
         with th.no_grad():
-            q_pi_target = self.critic_target(next_obs, self.actor(next_obs))
+            q_pi_target = self.critic_target(next_obs, self.actor_target(next_obs))
             backup = rew + self.gamma * (1 - done) * q_pi_target
 
         # MSE loss against Bellman backup
-        loss_q = ((q - backup) ** 2).mean()
+        # TODO: mse
+        loss_q = F.mse_loss(q, backup)
         return loss_q
 
     def loss_pi(self, data):
@@ -273,6 +281,7 @@ class DDPG:
 
         # Freeze Q-network so you don't waste computational effort
         # computing gradients for it during the policy learning step.
+        # TODO: should include actor_target as well.
         for param in self.critic.parameters():
             param.requires_grad = False
 
@@ -288,6 +297,7 @@ class DDPG:
 
         # Finally, update target networks by polyak averaging.
         # * here tau = (1 - polyak)
+        soft_update(self.actor_target, self.actor, self.tau, self.one)
         soft_update(self.critic_target, self.critic, self.tau, self.one)
 
     

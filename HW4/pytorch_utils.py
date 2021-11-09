@@ -37,7 +37,6 @@ class MLPDeterministicPolicy(nn.Module):
 
         # init weights
         self._init_weights()
-        ic(self.net)
 
     def _init_weights(self):
         """
@@ -85,7 +84,6 @@ class MLPQFunction(nn.Module):
         self.fc3 = nn.Linear(self.hidden_sizes[1], 1)
         
         self._init_weights()
-        ic(self.fc1, self.fc2, self.fc3)
         
         
     
