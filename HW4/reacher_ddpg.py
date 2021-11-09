@@ -35,21 +35,25 @@ if __name__ == "__main__":
             env,
             buffer_size=int(1e6),
             gamma=0.99,
-            tau=0.005,
+            tau=0.001,
             pi_lr=1e-4,
-            qf_lr=7e-4,
+            qf_lr=1e-3,
             seed=0,
             device=ptu.device,
             save_dir=str(path),
             hidden_sizes=(400, 300),
             activation="relu_inplace",
         )
+        
+        ic(ddpg.actor)
+        ic(ddpg.critic)
+        
         ddpg.train(
             num_steps=int(2e5),
-            batch_size=64,
+            batch_size=128,
             start_steps=10_000,
             steps_per_epoch=1_500,
-            update_every=150,
+            update_every=100,
             update_after=1000,
             act_noise_scale=0.1,
         )

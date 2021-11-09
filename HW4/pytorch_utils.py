@@ -88,7 +88,6 @@ class MLPQFunction(nn.Module):
         
     
     def forward(self, state: th.Tensor, action: th.Tensor) -> th.Tensor:
-        # q_val = self.q(th.cat([state, action], dim=-1))
         x = self.fc1(state)
         x = F.relu(x)
         
@@ -104,7 +103,7 @@ class MLPQFunction(nn.Module):
         The other layers were initialized from uniform distributions[−1 / sqrt(f), 1 / sqrt(f)]
             where f is the fan-in of the layer.
         The final layer weights and biases of both the actor and critic were initialized
-            from a uniform distribution [−3 × 10−3, 3 × 10−3] and [3 × 10−4, 3 × 10−4]] for the
+            from a uniform distribution [−3 × 10−3, 3 × 10−3]
         """
         w1 = 1 / np.sqrt(self.obs_dim)
         w2 = 1 / np.sqrt(self.hidden_sizes[0] + self.act_dim)
