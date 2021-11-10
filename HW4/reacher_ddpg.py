@@ -2,9 +2,12 @@ import argparse
 import pathlib
 import time
 
+import gym
+
 import numpy as np
 import torch as th
-import gym
+
+import matplotlib.pyplot as plt
 
 import pytorch_utils as ptu
 from ddpg import DDPG
@@ -20,22 +23,22 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", "-t", action="store_true")
+    parser.add_argument("--cuda", action="store_true")
     args = parser.parse_args()
 
     path = pathlib.Path(__file__).parent.resolve()
 
     # TODO: change to rand_init = True
-    env = gym.make(f"modified_gym_env:ReacherPyBulletEnv-v1", rand_init=False)
+    env = gym.make(f"modified_gym_env:ReacherPyBulletEnv-v1", rand_init=True)
 
-    ptu.init_gpu(use_gpu=True)  # using cpu
-    # ptu.init_gpu(use_gpu=False) # using cpu
+    ptu.init_gpu(use_gpu=args.cuda)  # using cpu
 
     if args.train:
         ddpg = DDPG(
             env,
-            buffer_size=int(1e6),
+            buffer_size=int(1e5),
             gamma=0.99,
-            tau=0.001,
+            tau=0.005,
             pi_lr=1e-4,
             qf_lr=1e-3,
             seed=0,
@@ -48,15 +51,27 @@ if __name__ == "__main__":
         ic(ddpg.actor)
         ic(ddpg.critic)
         
-        ddpg.train(
+        loss_actor, loss_critic, train_rew = ddpg.train(
             num_steps=int(2e5),
-            batch_size=128,
-            start_steps=10_000,
+            batch_size=64,
+            start_steps=1_000,
             steps_per_epoch=1_500,
             update_every=100,
             update_after=1000,
             act_noise_scale=0.1,
         )
+        
+        plt.plot(loss_actor)
+        plt.title("policy loss")
+        plt.show()
+        plt.plot(loss_critic)
+        plt.title("Q function loss")
+        plt.show()
+        plt.plot(train_rew)
+        plt.title("Episode Return")
+        plt.xlabel("Epoch")
+        plt.show()
+        
 
     else:
         # load
@@ -80,7 +95,7 @@ if __name__ == "__main__":
                 act = policy.get_action(ptu.to_torch(obs), noise_scale=0.0)
 
                 obs, rew, done, _ = env.step(act)
-                time.sleep(0.5)
+                time.sleep(0.1)
                 ep_ret += rew
                 ep_len += 1
 

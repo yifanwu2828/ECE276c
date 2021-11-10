@@ -151,7 +151,6 @@ class DDPG:
         ).to(self.device)
 
         # Set target param equal to main param should be same as deep copy.
-        # TODO: should include actor_target as well.
         self.actor_target = deepcopy(self.actor).to(self.device)
         self.critic_target = deepcopy(self.critic).to(self.device)
 
@@ -160,6 +159,8 @@ class DDPG:
 
         # a constant for quick soft update
         self.one = th.ones(1, device=self.device)
+        
+        self.best_score = -float("inf")
 
     def train(
         self,
@@ -172,11 +173,13 @@ class DDPG:
         act_noise_scale: float = 0.1,
         max_grad_norm: Optional[float] = None,
     ):
-
+        loss_actor, loss_critic = [], []
+        train_rew = []
+        
         obs = self.env.reset()
         ep_ret, ep_len = 0.0, 0
 
-        for t in tqdm(range(num_steps), dynamic_ncols=True):
+        for t in tqdm(range(num_steps), desc = "(DDPG)", dynamic_ncols=True):
             # Random exploration step
             if t < start_steps:
                 act = self.env.action_space.sample()
@@ -200,11 +203,15 @@ class DDPG:
             if t >= update_after and t % update_every == 0:
                 for _ in range(update_every):
                     batch = self.buffer.sample(batch_size)
-                    self.update(data=batch)
+                    loss_pi, loss_q = self.update(data=batch)
+                loss_actor.append(ptu.to_numpy(loss_pi))
+                loss_critic.append(ptu.to_numpy(loss_q))
 
             if (t + 1) % steps_per_epoch == 0:
                 epoch = (t + 1) // steps_per_epoch
-                self.evaluation(epoch, num_eval_episodes=10)
+                mean_rew = self.evaluation(epoch, num_eval_episodes=10)
+                train_rew.append(mean_rew)
+        return loss_actor, loss_critic, train_rew
 
     @th.no_grad()
     def evaluation(self, epoch, num_eval_episodes: int):
@@ -214,7 +221,7 @@ class DDPG:
         :return: Mean reward and std of rewards for the last 100 episodes.
         """
         valid_returns, valid_ep_lens = [], []
-        for t in range(num_eval_episodes):
+        for _ in range(num_eval_episodes):
             obs = self.test_env.reset()
             ep_ret, ep_len = 0.0, 0
             done = False
@@ -233,13 +240,17 @@ class DDPG:
         mean_ep_len = np.mean(valid_ep_lens)
         print(
             ptu.colorize(
-            f"Epoch: {epoch}\t"
-            f"Mean Reward: {mean_rew: .2f} +/- {std_rew: .2f}\t"
+            f"Epoch: {epoch} | "
+            f"Best:{self.best_score:.2f} | "
+            f"Mean Reward: {mean_rew: .2f} +/- {std_rew: .2f} "
             f"with ep_len {mean_ep_len: .2f}", color="white"
             )
         )
-        if mean_rew > -5 and mean_ep_len < 30:
-            self.save(path=os.path.join(self.save_dir, "actor.pth")) 
+        if self.best_score < mean_rew:
+                self.best_score = mean_rew
+        if mean_rew > -5 and mean_ep_len < 40:
+            self.save(path=os.path.join(self.save_dir, f"{mean_ep_len}_actor.pth")) 
+        return mean_rew
     
     def save(self, path):
         print("Saving ...")
@@ -254,20 +265,19 @@ class DDPG:
             data["done"],
         )
 
+        # current q
         q = self.critic(obs, act)
 
+        # target q
         with th.no_grad():
             q_pi_target = self.critic_target(next_obs, self.actor_target(next_obs))
             backup = rew + self.gamma * (1 - done) * q_pi_target
 
         # MSE loss against Bellman backup
-        # TODO: mse
         loss_q = F.mse_loss(q, backup)
         return loss_q
 
-    def loss_pi(self, data):
-        obs = data["obs"]
-        # Q(s,a) = Q(sm \mu(s))
+    def loss_pi(self, obs: th.Tensor):
         q_pi = self.critic(obs, self.actor(obs))
         return -q_pi.mean()
 
@@ -281,13 +291,12 @@ class DDPG:
 
         # Freeze Q-network so you don't waste computational effort
         # computing gradients for it during the policy learning step.
-        # TODO: should include actor_target as well.
         for param in self.critic.parameters():
             param.requires_grad = False
 
         # Next run one gradient descent step for pi.
         self.actor_optimizer.zero_grad()
-        loss_pi = self.loss_pi(data)
+        loss_pi = self.loss_pi(data["obs"])
         loss_pi.backward()
         self.actor_optimizer.step()
 
@@ -299,6 +308,7 @@ class DDPG:
         # * here tau = (1 - polyak)
         soft_update(self.actor_target, self.actor, self.tau, self.one)
         soft_update(self.critic_target, self.critic, self.tau, self.one)
+        return loss_pi, loss_q
 
     
 

@@ -44,7 +44,7 @@ class MLPDeterministicPolicy(nn.Module):
         The other layers were initialized from uniform distributions[−1 / sqrt(f), 1 / sqrt(f)]
             where f is the fan-in of the layer.
         The final layer weights and biases of both the actor and critic were initialized
-            from a uniform distribution [−3 × 10−3, 3 × 10−3] and [3 × 10−4, 3 × 10−4]] for the
+            from a uniform distribution [−3 × 10−3, 3 × 10−3]
         """
         w1 = 1 / np.sqrt(self.obs_dim)
         w2 = 1 / np.sqrt(self.hidden_sizes[0])
@@ -53,6 +53,11 @@ class MLPDeterministicPolicy(nn.Module):
         self.net[0].weight.data.uniform_(-w1, w1)
         self.net[2].weight.data.uniform_(-w2, w2)
         self.net[4].weight.data.uniform_(-w3, w3)
+        
+        # self.net[0].bias.data.fill_(0)
+        # self.net[2].bias.data.fill_(0)
+        # self.net[4].bias.data.fill_(0)
+        
 
     def forward(self, state: th.Tensor) -> th.Tensor:
         return self.net(state) * self.act_limit
@@ -112,6 +117,10 @@ class MLPQFunction(nn.Module):
         self.fc1.weight.data.uniform_(-w1, w1)
         self.fc2.weight.data.uniform_(-w2, w2)
         self.fc3.weight.data.uniform_(-w3, w3)
+        
+        # self.fc1.bias.data.fill_(0)
+        # self.fc2.bias.data.fill_(0)
+        # self.fc3.bias.data.fill_(0)
     
     
 color2num = dict(
