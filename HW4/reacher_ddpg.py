@@ -28,7 +28,6 @@ if __name__ == "__main__":
 
     path = pathlib.Path(__file__).parent.resolve()
 
-    # TODO: change to rand_init = True
     env = gym.make(f"modified_gym_env:ReacherPyBulletEnv-v1", rand_init=True)
 
     ptu.init_gpu(use_gpu=args.cuda)  # using cpu
