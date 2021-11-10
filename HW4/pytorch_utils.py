@@ -36,7 +36,9 @@ class MLPDeterministicPolicy(nn.Module):
         self.hidden_sizes = hidden_sizes
 
         # init weights
-        self._init_weights()
+        # self._init_weights()
+        orthogonal_init(self.net, gain = np.sqrt(2))
+        
 
     def _init_weights(self):
         """
@@ -54,9 +56,9 @@ class MLPDeterministicPolicy(nn.Module):
         self.net[2].weight.data.uniform_(-w2, w2)
         self.net[4].weight.data.uniform_(-w3, w3)
         
-        # self.net[0].bias.data.fill_(0)
-        # self.net[2].bias.data.fill_(0)
-        # self.net[4].bias.data.fill_(0)
+        for module in [self.net[0], self.net[2], self.net[4]]:
+            if module.bias is not None:
+                module.bias.data.fill_(0.0)
         
 
     def forward(self, state: th.Tensor) -> th.Tensor:
@@ -118,9 +120,9 @@ class MLPQFunction(nn.Module):
         self.fc2.weight.data.uniform_(-w2, w2)
         self.fc3.weight.data.uniform_(-w3, w3)
         
-        # self.fc1.bias.data.fill_(0)
-        # self.fc2.bias.data.fill_(0)
-        # self.fc3.bias.data.fill_(0)
+        for module in [self.fc1, self.fc2, self.fc3]:
+            if module.bias is not None:
+                module.bias.data.fill_(0.0)
     
     
 color2num = dict(
@@ -134,6 +136,13 @@ color2num = dict(
     white=37,
     crimson=38,
 )
+
+def orthogonal_init(module: nn.Module, gain: float = 1) -> None:
+    """Orthogonal initialization."""
+    if isinstance(module, (nn.Linear, nn.Conv2d)):
+        nn.init.orthogonal_(module.weight, gain=gain)
+        if module.bias is not None:
+            module.bias.data.fill_(0.0)
 
 device = None
 

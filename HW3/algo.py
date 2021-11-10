@@ -127,7 +127,6 @@ def vpg_with_baseline(
 
             # trajectory done or batch finished
             if done or (batch_i == batch_size - 1):
-                # trajectory or batch finished
                 reward_to_go = [
                     np.sum(
                         [

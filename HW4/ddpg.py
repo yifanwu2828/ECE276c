@@ -169,7 +169,7 @@ class DDPG:
         start_steps: int,
         steps_per_epoch: int,
         update_after=1000,
-        update_every=50,
+        train_freq=50,
         act_noise_scale: float = 0.1,
         max_grad_norm: Optional[float] = None,
     ):
@@ -200,8 +200,8 @@ class DDPG:
             obs = next_obs
             
             # update
-            if t >= update_after and t % update_every == 0:
-                for _ in range(update_every):
+            if t >= update_after and t % train_freq == 0:
+                for _ in range(train_freq):
                     batch = self.buffer.sample(batch_size)
                     loss_pi, loss_q = self.update(data=batch)
                 loss_actor.append(ptu.to_numpy(loss_pi))
