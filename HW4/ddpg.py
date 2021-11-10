@@ -248,7 +248,7 @@ class DDPG:
         )
         if self.best_score < mean_rew:
                 self.best_score = mean_rew
-        if mean_rew > -5 and mean_ep_len < 40:
+        if mean_rew > -5 and mean_ep_len <= 30:
             self.save(path=os.path.join(self.save_dir, f"{mean_ep_len}_actor.pth")) 
         return mean_rew
     

@@ -41,7 +41,7 @@ if __name__ == "__main__":
             tau=0.005,
             pi_lr=1e-4,
             qf_lr=1e-3,
-            seed=0,
+            seed=42,
             device=ptu.device,
             save_dir=str(path),
             hidden_sizes=(400, 300),
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         
         loss_actor, loss_critic, train_rew = ddpg.train(
             num_steps=int(2e5),
-            batch_size=64,
+            batch_size=128,
             start_steps=1_000,
             steps_per_epoch=1_500,
             update_every=100,
